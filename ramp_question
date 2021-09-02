@@ -124,11 +124,38 @@ VALUES
   ('2021-01-08 00:49:22.000000', '31.61');
   
   
+  
+  
   /* SOLUTION: */
   
+  -- Step 1. Aggregate transaction amount by day
+  WITH DAILY_TTL AS (
   SELECT
-      
+       DATE(transaction_time) AS TRANS_DATE
+      ,SUM(CAST(transaction_amount AS DECIMAL(20,2))) AS DAILY_TTL_AMT
   FROM transactions
+  GROUP BY
+       DATE(transaction_time)
+  )
+  -- Step 2. Find the rolling 3 day average assuming rolling 3 day means current day and previous 2 days
+  ,DAILY_3D_AVG AS (
+  SELECT
+       TRANS_DATE
+      ,AVG(DAILY_TTL_AMT) OVER (ORDER BY TRANS_DATE ASC ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS ROLLING_3D_AVG
+  FROM DAILY_TTL
+  )
+  -- Step 3. (Conditional) Assuming Dec 2020 data exists in the full table and we want Jan 1 and Jan 2 to have trailing 3 day values we incorporate filter last
+  SELECT
+       TRANS_DATE
+      ,ROLLING_3D_AVG
+  FROM DAILY_3D_AVG
+  WHERE
+       TRANS_DATE BETWEEN '2021-01-01' AND '2021-01-31'
+  ORDER BY
+       TRANS_DATE ASC
+  ;
   
+  
+       
   
   
